@@ -1,4 +1,4 @@
-import { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, Group, Mesh, BoxGeometry, MeshStandardMaterial, GridHelper, PlaneGeometry } from 'three'
+import { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, Group, Mesh, BoxGeometry, MeshStandardMaterial, GridHelper, PlaneGeometry, Texture } from 'three'
 
 export interface ViewerInstance {
   scene: Scene
@@ -88,6 +88,42 @@ export function toggleGrid(scene: Scene, visible: boolean) {
     if (gridHelper) scene.remove(gridHelper)
     if (groundPlane) scene.remove(groundPlane)
   }
+}
+
+const MAX_TEXTURE_SIZE = 2048
+
+function downscaleTexture(texture: Texture) {
+  if (!texture.image || texture.image.width <= MAX_TEXTURE_SIZE && texture.image.height <= MAX_TEXTURE_SIZE) return
+
+  const img = texture.image
+  const maxDim = Math.max(img.width, img.height)
+  const scale = MAX_TEXTURE_SIZE / maxDim
+  const w = Math.round(img.width * scale)
+  const h = Math.round(img.height * scale)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(img, 0, 0, w, h)
+
+  texture.image = canvas
+  texture.needsUpdate = true
+}
+
+export function downscaleTextures(model: Group) {
+  model.traverse((child) => {
+    if (child instanceof Mesh) {
+      const materials = Array.isArray(child.material) ? child.material : [child.material]
+      for (const mat of materials) {
+        const textureProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'displacementMap', 'alphaMap'] as const
+        for (const prop of textureProps) {
+          const tex = (mat as Record<string, unknown>)[prop]
+          if (tex instanceof Texture) downscaleTexture(tex)
+        }
+      }
+    }
+  })
 }
 
 export function createViewer(container: HTMLElement, options?: ViewerOptions): ViewerInstance {

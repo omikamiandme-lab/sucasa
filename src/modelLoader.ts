@@ -3,23 +3,23 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 const loader = new GLTFLoader()
 
-function isRelative(url: string): boolean {
-  return url.startsWith('/') || url.startsWith('./') || url.startsWith('../')
+export interface LoadProgress {
+  loaded: number
+  total: number
+  percent: number
 }
 
-function isAllowedScheme(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    return ['http:', 'https:'].includes(parsed.protocol)
-  } catch {
-    return false
-  }
-}
-
-export async function loadModel(url: string): Promise<Group> {
-  if (!isRelative(url) && !isAllowedScheme(url)) {
-    throw new Error('Invalid model URL — only http/https or relative URLs are allowed')
-  }
-  const gltf = await loader.loadAsync(url)
+export async function loadModel(url: string, onProgress?: (progress: LoadProgress) => void): Promise<Group> {
+  const gltf = await new Promise<import('three/examples/jsm/loaders/GLTFLoader.js').GLTF>((resolve, reject) => {
+    loader.load(url, resolve, (event) => {
+      if (onProgress && event.lengthComputable) {
+        onProgress({
+          loaded: event.loaded,
+          total: event.total,
+          percent: Math.round((event.loaded / event.total) * 100),
+        })
+      }
+    }, reject)
+  })
   return gltf.scene
 }

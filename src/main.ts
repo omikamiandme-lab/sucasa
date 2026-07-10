@@ -1,5 +1,5 @@
 import { Group, Mesh } from 'three'
-import { createViewer, createFallbackModel, disposeModel, stripUserData, toggleGrid } from './viewer'
+import { createViewer, createFallbackModel, disposeModel, stripUserData, toggleGrid, downscaleTextures } from './viewer'
 import { createControls } from './controls'
 import { loadModel } from './modelLoader'
 import { setupUI, setStatus, setModelInfo } from './ui'
@@ -109,7 +109,11 @@ document.addEventListener('keydown', (event) => {
 
 async function loadDefaultModel() {
   try {
-    const model = await loadModel('/models/sample.gltf')
+    setStatus('Loading model...')
+    const model = await loadModel('/models/sample.gltf', (progress) => {
+      setStatus(`Loading model... ${progress.percent}%`)
+    })
+    downscaleTextures(model)
     setModel(model)
     setStatus('Demo model loaded')
   } catch {
