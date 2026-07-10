@@ -1,4 +1,4 @@
-import { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight } from 'three'
+import { Scene, PerspectiveCamera, WebGLRenderer, AmbientLight, DirectionalLight, Group, Mesh, BoxGeometry, MeshStandardMaterial, GridHelper, PlaneGeometry } from 'three'
 
 export interface ViewerInstance {
   scene: Scene
@@ -7,19 +7,113 @@ export interface ViewerInstance {
   resize: () => void
 }
 
-export function createViewer(container: HTMLElement): ViewerInstance {
+export interface ViewerOptions {
+  onContextLost?: () => void
+  onContextRestored?: () => void
+}
+
+function disposeMaterial(mat: unknown) {
+  if (!mat) return
+  const materials = Array.isArray(mat) ? mat : [mat]
+  for (const m of materials) {
+    for (const key in m) {
+      const value = (m as Record<string, unknown>)[key]
+      if (value && typeof value === 'object' && 'isTexture' in value && typeof (value as Record<string, unknown>).dispose === 'function') {
+        ;(value as unknown as { dispose: () => void }).dispose()
+      }
+    }
+    m.dispose()
+  }
+}
+
+export function disposeModel(model: Group) {
+  model.traverse((child) => {
+    if (child instanceof Mesh) {
+      child.geometry.dispose()
+      disposeMaterial(child.material)
+    }
+  })
+}
+
+export function stripUserData(model: Group) {
+  model.traverse((child) => {
+    child.userData = {}
+  })
+}
+
+export function createFallbackModel(): Group {
+  const group = new Group()
+
+  const baseGeo = new BoxGeometry(2, 1.5, 1.5)
+  const baseMat = new MeshStandardMaterial({ color: 0x8B7355, flatShading: true })
+  const base = new Mesh(baseGeo, baseMat)
+  base.position.y = 0.75
+  group.add(base)
+
+  const roofGeo = new BoxGeometry(2.2, 0.6, 1.7)
+  const roofMat = new MeshStandardMaterial({ color: 0xA0522D, flatShading: true })
+  const roof = new Mesh(roofGeo, roofMat)
+  roof.position.y = 1.8
+  roof.rotation.z = 0.15
+  group.add(roof)
+
+  const doorGeo = new BoxGeometry(0.4, 0.6, 0.1)
+  const doorMat = new MeshStandardMaterial({ color: 0x5D3A1A, flatShading: true })
+  const door = new Mesh(doorGeo, doorMat)
+  door.position.set(0, 0.5, 0.76)
+  group.add(door)
+
+  return group
+}
+
+let gridHelper: GridHelper | null = null
+let groundPlane: Mesh | null = null
+
+export function toggleGrid(scene: Scene, visible: boolean) {
+  if (visible) {
+    if (!gridHelper) {
+      gridHelper = new GridHelper(20, 20, 0x888888, 0x444444)
+      gridHelper.position.y = -0.01
+    }
+    if (!groundPlane) {
+      const geo = new PlaneGeometry(20, 20)
+      const mat = new MeshStandardMaterial({ color: 0x333333, transparent: true, opacity: 0.4, side: 2 })
+      groundPlane = new Mesh(geo, mat)
+      groundPlane.rotation.x = -Math.PI / 2
+      groundPlane.position.y = -0.01
+    }
+    scene.add(gridHelper)
+    scene.add(groundPlane)
+  } else {
+    if (gridHelper) scene.remove(gridHelper)
+    if (groundPlane) scene.remove(groundPlane)
+  }
+}
+
+export function createViewer(container: HTMLElement, options?: ViewerOptions): ViewerInstance {
   const scene = new Scene()
 
   const camera = new PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000)
   camera.position.set(5, 5, 5)
   camera.lookAt(0, 0, 0)
 
-  const renderer = new WebGLRenderer({ antialias: true })
+  const renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
   renderer.setSize(container.clientWidth, container.clientHeight)
-  renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.toneMapping = 3
   renderer.toneMappingExposure = 1.2
   container.appendChild(renderer.domElement)
+
+  const canvas = renderer.domElement
+
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault()
+    options?.onContextLost?.()
+  })
+
+  canvas.addEventListener('webglcontextrestored', () => {
+    options?.onContextRestored?.()
+  })
 
   const ambientLight = new AmbientLight(0xffffff, 0.5)
   scene.add(ambientLight)

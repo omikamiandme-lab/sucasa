@@ -1,56 +1,153 @@
-import { Group } from 'three'
-import { createViewer } from './viewer'
+import { Group, Mesh } from 'three'
+import { createViewer, createFallbackModel, disposeModel, stripUserData, toggleGrid } from './viewer'
 import { createControls } from './controls'
 import { loadModel } from './modelLoader'
-import { setupUI, setStatus } from './ui'
+import { setupUI, setStatus, setModelInfo } from './ui'
 
 const container = document.getElementById('app')!
-const { scene, camera, renderer } = createViewer(container)
-const { controls, reset } = createControls(camera, renderer.domElement)
+const { scene, camera, renderer } = createViewer(container, {
+  onContextLost: () => {
+    running = false
+    cancelAnimationFrame(animFrameId)
+    setStatus('WebGL context lost — rendering paused')
+  },
+  onContextRestored: () => {
+    running = true
+    setStatus('Rendering resumed')
+    animate()
+  },
+})
+const { controls, reset, toggleAutoRotate } = createControls(camera, renderer.domElement)
 
 let currentModel: Group | null = null
+let gridVisible = false
+let autoRotateActive = false
 
 function setModel(model: Group) {
   if (currentModel) {
     scene.remove(currentModel)
+    disposeModel(currentModel)
   }
   currentModel = model
+  stripUserData(model)
   scene.add(model)
+  updateModelInfo(model)
+}
+
+function updateModelInfo(model: Group) {
+  let triangles = 0
+  let vertices = 0
+  const materials = new Set<object>()
+
+  model.traverse((child) => {
+    if (child instanceof Mesh) {
+      const geo = child.geometry
+      if (geo.index) {
+        triangles += geo.index.count / 3
+      } else if (geo.attributes.position) {
+        triangles += geo.attributes.position.count / 3
+      }
+      if (geo.attributes.position) {
+        vertices += geo.attributes.position.count
+      }
+      const mat = child.material
+      const mats = Array.isArray(mat) ? mat : [mat]
+      for (const m of mats) materials.add(m)
+    }
+  })
+
+  setModelInfo({ triangles: Math.round(triangles), vertices, materials: materials.size })
+}
+
+function updateGridButton() {
+  const btn = document.getElementById('grid-btn')
+  if (btn) btn.classList.toggle('active', gridVisible)
+}
+
+function updateAutoRotateButton() {
+  const btn = document.getElementById('autorotate-btn')
+  if (btn) btn.classList.toggle('active', autoRotateActive)
 }
 
 setupUI({
-  onLoad: async (url) => {
-    setStatus('Loading model...')
-    try {
-      const model = await loadModel(url)
-      setModel(model)
-      reset()
-      setStatus('Model loaded')
-    } catch {
-      setStatus('Failed to load model')
-    }
-  },
   onReset: () => {
     reset()
   },
+  onToggleGrid: () => {
+    gridVisible = !gridVisible
+    toggleGrid(scene, gridVisible)
+    updateGridButton()
+    setStatus(gridVisible ? 'Grid visible' : 'Grid hidden')
+  },
+  onToggleAutoRotate: () => {
+    autoRotateActive = toggleAutoRotate()
+    updateAutoRotateButton()
+    setStatus(autoRotateActive ? 'Auto-rotate on' : 'Auto-rotate off')
+  },
+})
+
+renderer.domElement.setAttribute('aria-label', '3D model viewer')
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'r' || event.key === 'R') {
+    reset()
+    setStatus('Camera reset')
+  }
+  if (event.key === 'g' || event.key === 'G') {
+    gridVisible = !gridVisible
+    toggleGrid(scene, gridVisible)
+    updateGridButton()
+    setStatus(gridVisible ? 'Grid visible' : 'Grid hidden')
+  }
+  if (event.key === ' ') {
+    event.preventDefault()
+    autoRotateActive = toggleAutoRotate()
+    updateAutoRotateButton()
+    setStatus(autoRotateActive ? 'Auto-rotate on' : 'Auto-rotate off')
+  }
 })
 
 async function loadDefaultModel() {
   try {
-    const model = await loadModel('/models/sample.glb')
+    const model = await loadModel('/models/sample.gltf')
     setModel(model)
     setStatus('Demo model loaded')
   } catch {
-    setStatus('No demo model found — paste a URL to load')
+    setModel(createFallbackModel())
+    setStatus('Fallback model displayed')
   }
 }
 
 loadDefaultModel()
 
+let animFrameId = 0
+let running = true
+
 function animate() {
-  requestAnimationFrame(animate)
+  if (!running) return
+  animFrameId = requestAnimationFrame(animate)
   controls.update()
   renderer.render(scene, camera)
 }
 
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    running = false
+    cancelAnimationFrame(animFrameId)
+  } else {
+    running = true
+    animate()
+  }
+})
+
 animate()
+
+window.addEventListener('error', (event) => {
+  setStatus('An unexpected error occurred')
+  console.error(event.error ?? event.message)
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  setStatus('An unexpected error occurred')
+  console.error(event.reason)
+})

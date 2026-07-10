@@ -7,6 +7,7 @@ const DEFAULT_TARGET = new Vector3(0, 0, 0)
 export interface ControlsInstance {
   controls: OrbitControls
   reset: () => void
+  toggleAutoRotate: () => boolean
   dispose: () => void
 }
 
@@ -25,9 +26,15 @@ export function createControls(camera: PerspectiveCamera, domElement: HTMLCanvas
     controls.update()
   }
 
+  function toggleAutoRotate(): boolean {
+    controls.autoRotate = !controls.autoRotate
+    controls.autoRotateSpeed = 4
+    return controls.autoRotate
+  }
+
   function dispose() {
     controls.dispose()
   }
 
-  return { controls, reset, dispose }
+  return { controls, reset, toggleAutoRotate, dispose }
 }

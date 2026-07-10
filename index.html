@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';" />
     <title>3D Property Viewer</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -21,17 +22,6 @@
         border-radius: 8px;
         align-items: center;
       }
-      #ui-overlay input {
-        padding: 6px 12px;
-        border: 1px solid #555;
-        border-radius: 4px;
-        background: #222;
-        color: #eee;
-        font-size: 14px;
-        width: 320px;
-        outline: none;
-      }
-      #ui-overlay input:focus { border-color: #4a9eff; }
       #ui-overlay button {
         padding: 6px 14px;
         border: none;
@@ -45,6 +35,20 @@
       #ui-overlay button:hover { background: #3680d6; }
       #ui-overlay button#reset-btn { background: #555; }
       #ui-overlay button#reset-btn:hover { background: #777; }
+      #ui-overlay button.active { background: #f0c040; color: #222; }
+      #model-info {
+        position: absolute;
+        bottom: 48px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #888;
+        font-size: 12px;
+        font-family: sans-serif;
+        z-index: 10;
+        background: rgba(0,0,0,0.5);
+        padding: 4px 12px;
+        border-radius: 4px;
+      }
       #status {
         position: absolute;
         bottom: 16px;
@@ -63,10 +67,11 @@
   <body>
     <div id="app"></div>
     <div id="ui-overlay">
-      <input id="url-input" type="text" placeholder="Paste a .glb/.gltf URL here..." />
-      <button id="load-btn">Load</button>
-      <button id="reset-btn">Reset Camera</button>
+      <button id="reset-btn" aria-label="Reset camera">Reset Camera</button>
+      <button id="grid-btn" aria-label="Toggle grid">Toggle Grid</button>
+      <button id="autorotate-btn" aria-label="Toggle auto-rotation">Auto Rotate</button>
     </div>
+    <div id="model-info"></div>
     <div id="status">Loading demo model...</div>
     <script type="module" src="/src/main.ts"></script>
   </body>

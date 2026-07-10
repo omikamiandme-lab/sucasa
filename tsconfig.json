@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "sourceMap": true
+    "sourceMap": false
   },
   "include": ["src"]
 }
