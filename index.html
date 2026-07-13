@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';" />
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'wasm-unsafe-eval'; img-src 'self' data:; style-src 'self' 'unsafe-inline';" />
     <title>3D Property Viewer</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,6 +36,61 @@
       #ui-overlay button#reset-btn { background: #555; }
       #ui-overlay button#reset-btn:hover { background: #777; }
       #ui-overlay button.active { background: #f0c040; color: #222; }
+      #prop-btn { background: #4a9eff; }
+      #prop-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 100%;
+        background: rgba(20,20,20,0.92);
+        color: #ddd;
+        font-family: sans-serif;
+        font-size: 14px;
+        z-index: 20;
+        padding: 24px 20px;
+        overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        box-shadow: -4px 0 12px rgba(0,0,0,0.5);
+      }
+      #prop-panel.open { transform: translateX(0); }
+      #prop-panel h2 {
+        font-size: 18px;
+        color: #fff;
+        margin: 0 0 4px 0;
+      }
+      #prop-panel .address {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 16px;
+      }
+      #prop-panel .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      #prop-panel .detail-row .label { color: #888; }
+      #prop-panel .detail-row .value { color: #fff; font-weight: 600; }
+      #prop-panel .price { font-size: 22px; color: #4a9eff; font-weight: 700; margin-bottom: 12px; }
+      #prop-panel .description {
+        margin-top: 12px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: #aaa;
+      }
+      #prop-panel .close-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 20px;
+        cursor: pointer;
+      }
+      #prop-panel .close-btn:hover { color: #fff; }
       #model-info {
         position: absolute;
         bottom: 48px;
@@ -70,6 +125,18 @@
       <button id="reset-btn" aria-label="Reset camera">Reset Camera</button>
       <button id="grid-btn" aria-label="Toggle grid">Toggle Grid</button>
       <button id="autorotate-btn" aria-label="Toggle auto-rotation">Auto Rotate</button>
+      <button id="prop-btn" aria-label="Toggle property info">Property</button>
+    </div>
+    <div id="prop-panel">
+      <button class="close-btn" id="prop-close" aria-label="Close property panel">&times;</button>
+      <h2 id="prop-title"></h2>
+      <div class="address" id="prop-address"></div>
+      <div class="price" id="prop-price"></div>
+      <div class="detail-row"><span class="label">Bedrooms</span><span class="value" id="prop-bedrooms"></span></div>
+      <div class="detail-row"><span class="label">Bathrooms</span><span class="value" id="prop-bathrooms"></span></div>
+      <div class="detail-row"><span class="label">Square Feet</span><span class="value" id="prop-sqft"></span></div>
+      <div class="detail-row"><span class="label">Year Built</span><span class="value" id="prop-year"></span></div>
+      <div class="description" id="prop-description"></div>
     </div>
     <div id="model-info"></div>
     <div id="status">Loading demo model...</div>

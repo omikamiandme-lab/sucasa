@@ -18,11 +18,11 @@ src/
 ├── main.ts           # Entry point, wires everything together
 ├── viewer.ts         # Scene, camera, renderer, lighting
 ├── controls.ts       # OrbitControls + reset camera logic
-├── modelLoader.ts    # GLTF/GLB loading (URL + bundled)
+├── modelLoader.ts    # GLTF/GLB loading (bundled)
 └── ui.ts             # DOM element creation & event binding
 
 public/
-└── models/           # Bundled sample .glb models
+└── models/           # Bundled sample models
 ```
 
 ## Coding Conventions
@@ -42,16 +42,20 @@ public/
 ## MVP Scope (Phase 1)
 - 3D scene with perspective camera, ambient + directional lighting.
 - OrbitControls for drag-to-rotate, scroll-to-zoom, right-click-to-pan.
-- Load a demo `.glb` model from `public/models/` on startup.
-- URL input field + button to load any `.glb`/`.gltf` from an external URL.
+- Load a demo `.gltf`/`.glb` model from `public/models/` on startup.
+- Fallback procedural model if demo load fails.
 - Reset Camera button that returns the view to the default position.
+- Toggleable grid / ground plane for spatial reference.
+- Auto-rotation toggle (button + Space key).
+- Model info overlay (triangle, vertex, material count).
+- Keyboard shortcuts: R (reset), G (grid), Space (auto-rotate).
 - Responsive canvas (fills viewport, handles window resize).
 
 ## Explicitly Out of Scope (Phase 1)
 - Floor plans or 2D view toggle.
-- Property info panels, labels, or annotations.
 - Multi-model or multi-floor navigation.
 - Hotspots, room-by-room tours.
+- Measurement tools.
 - PDF/image export.
 - Server-side rendering or SSR.
 - State management library (Redux, Zustand, etc.).
@@ -64,12 +68,12 @@ public/
 - `ui.ts` never imports Three.js — it only calls callbacks provided by `main.ts`.
 - Only one model loaded at a time. Loading a new model replaces the current one.
 - The render loop uses `requestAnimationFrame` inside a single `animate()` in `main.ts`.
-- No external model hosting — sample models are bundled in `public/models/` as `.glb`.
+- No external model hosting — sample models are bundled in `public/models/`.
 
 ## Scaling Path (Future Phases)
-- Phase 2: Property info overlay, measurement tools, grid/ground plane toggle.
-- Phase 3: Floor plan overlay synchronized with 3D view.
-- Phase 4: Multi-floor / multi-room navigation with hotspots.
+- Phase 2 (ongoing): Performance — DRACO decompression, LOD, object pooling, CDN caching.
+- Phase 3 (ongoing): Security — Subresource Integrity, model sandboxing.
+- Phase 4 (ongoing): Features & Polish — measurement tool, floor plan sync, multi-floor navigation, room hotspots.
 - Phase 5: Backend integration for model catalog, user accounts, saved tours.
 
 ## Testing

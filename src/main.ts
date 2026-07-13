@@ -2,7 +2,8 @@ import { Group, Mesh } from 'three'
 import { createViewer, createFallbackModel, disposeModel, stripUserData, toggleGrid, downscaleTextures } from './viewer'
 import { createControls } from './controls'
 import { loadModel } from './modelLoader'
-import { setupUI, setStatus, setModelInfo } from './ui'
+import { setupUI, setStatus, setModelInfo, setPropertyInfo, setPropertyOpen } from './ui'
+import type { PropertyInfo } from './ui'
 
 const container = document.getElementById('app')!
 const { scene, camera, renderer } = createViewer(container, {
@@ -22,6 +23,18 @@ const { controls, reset, toggleAutoRotate } = createControls(camera, renderer.do
 let currentModel: Group | null = null
 let gridVisible = false
 let autoRotateActive = false
+let propertyOpen = false
+
+const DEMO_PROPERTY: PropertyInfo = {
+  title: 'Homely House',
+  address: '123 Main Street, Springfield',
+  price: '$450,000',
+  bedrooms: 3,
+  bathrooms: 2,
+  sqft: 1850,
+  yearBuilt: 2019,
+  description: 'A charming three-bedroom home with an open floor plan, modern kitchen, and a spacious backyard. Located in a quiet neighborhood close to schools and parks.',
+}
 
 function setModel(model: Group) {
   if (currentModel) {
@@ -84,6 +97,11 @@ setupUI({
     updateAutoRotateButton()
     setStatus(autoRotateActive ? 'Auto-rotate on' : 'Auto-rotate off')
   },
+  onToggleProperty: () => {
+    propertyOpen = !propertyOpen
+    setPropertyOpen(propertyOpen)
+    setStatus(propertyOpen ? 'Property info open' : 'Property info closed')
+  },
 })
 
 renderer.domElement.setAttribute('aria-label', '3D model viewer')
@@ -115,9 +133,11 @@ async function loadDefaultModel() {
     })
     downscaleTextures(model)
     setModel(model)
+    setPropertyInfo(DEMO_PROPERTY)
     setStatus('Demo model loaded')
   } catch {
     setModel(createFallbackModel())
+    setPropertyInfo({ ...DEMO_PROPERTY, title: 'Property' })
     setStatus('Fallback model displayed')
   }
 }
